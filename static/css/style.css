@@ -1,0 +1,115 @@
+body {
+    font-family: 'Clear Sans', 'Helvetica Neue', Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #ffffff;
+    color: #1a1a1b;
+    margin: 0;
+    padding: 0;
+}
+
+h1 {
+    border-bottom: 1px solid #d3d6da;
+    width: 100%;
+    text-align: center;
+    padding: 10px 0;
+    margin: 0 0 20px 0;
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: 2px;
+}
+
+.board {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+.row {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+}
+
+.tile {
+    width: 62px;
+    height: 62px;
+    border: 2px solid #d3d6da;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 2rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    background-color: #ffffff;
+    box-sizing: border-box;
+}
+
+.correct {
+    background-color: #6aaa64;
+    border-color: #6aaa64;
+    color: #ffffff;
+}
+
+.present {
+    background-color: #c9b458;
+    border-color: #c9b458;
+    color: #ffffff;
+}
+
+.absent {
+    background-color: #787c7e;
+    border-color: #787c7e;
+    color: #ffffff;
+}
+
+.keyboard {
+    margin-top: 30px;
+    width: 100%;
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+    padding: 0 8px;
+    box-sizing: border-box;
+}
+
+.keyboard-row {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+    gap: 6px;
+}
+
+.keyboard-row button {
+    font-family: inherit;
+    font-weight: bold;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    width: 43px;
+    height: 43px;
+    border-radius: 4px;
+    cursor: pointer;
+    background-color: #d3d6da;
+    color: #1a1a1b;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-transform: uppercase;
+    font-size: 1.25rem;
+}
+
+.keyboard-row button.wide-button {
+    width: 65px;
+    font-size: 12px;
+}
+
+.spacer-half {
+    flex: 0.5;
+}
