@@ -6,69 +6,62 @@
     <title>Wordle Online</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body>
-    <h1>Wordle</h1>
-    <div id="game">
-        <div class="board">
-            <div class="row">
-                <div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div>
-            </div>
-            <div class="row">
-                <div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div>
-            </div>
-            <div class="row">
-                <div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div>
-            </div>
-            <div class="row">
-                <div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div>
-            </div>
-            <div class="row">
-                <div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div>
-            </div>
-            <div class="row">
-                <div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div>
-            </div>
+<body class="auth-required">
+    <header class="topbar">
+        <div class="topbar-left">
+            <button id="nav-leaderboard" class="icon-button" title="Leaderboard" type="button">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="20" x2="18" y2="10"></line>
+                    <line x1="12" y1="20" x2="12" y2="4"></line>
+                    <line x1="6" y1="20" x2="6" y2="14"></line>
+                </svg>
+            </button>
         </div>
-        <div class="keyboard">
-            <div class="keyboard-row">
-                <button data-key="Q">Q</button>
-                <button data-key="W">W</button>
-                <button data-key="E">E</button>
-                <button data-key="R">R</button>
-                <button data-key="T">T</button>
-                <button data-key="Y">Y</button>
-                <button data-key="U">U</button>
-                <button data-key="I">I</button>
-                <button data-key="O">O</button>
-                <button data-key="P">P</button>
-            </div>
-            <div class="keyboard-row">
-                <button data-key="A">A</button>
-                <button data-key="S">S</button>
-                <button data-key="D">D</button>
-                <button data-key="F">F</button>
-                <button data-key="G">G</button>
-                <button data-key="H">H</button>
-                <button data-key="J">J</button>
-                <button data-key="K">K</button>
-                <button data-key="L">L</button>
-            </div>
-            <div class="keyboard-row">
-                <button data-key="Enter" class="wide-button">ENTER</button>
-                <button data-key="Z">Z</button>
-                <button data-key="X">X</button>
-                <button data-key="C">C</button>
-                <button data-key="V">V</button>
-                <button data-key="B">B</button>
-                <button data-key="N">N</button>
-                <button data-key="M">M</button>
-                <button data-key="Backspace" class="wide-button">
-                    <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" fill="currentColor">
-                        <path d="M22 3H7c-.69 0-1.23.35-1.59.88L0 12l5.41 8.11c.36.53.9.89 1.59.89h15c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H7.07L2.4 12l4.66-7H22v14zm-11.59-2L14 13.41 17.59 17 19 15.59 15.41 12 19 8.41 17.59 7 14 10.59 10.41 7 9 8.41 12.59 12 9 15.59z"></path>
-                    </svg>
-                </button>
-            </div>
+        <h1>Wordle</h1>
+        <div class="topbar-right">
+            <button id="new-game" class="icon-button" title="Nová hra" type="button">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+            </button>
+            <nav id="user-nav" class="user-nav hidden" aria-label="Používateľ">
+                <span id="user-name"></span>
+                <button id="logout" class="secondary-button" type="button">Odhlásiť sa</button>
+            </nav>
         </div>
-    </div>
+    </header>
+
+    <main class="layout">
+        <section id="game" class="panel game-panel">
+            <div id="message" class="message" role="status"></div>
+            <div id="board" class="board" aria-label="Wordle hracia plocha"></div>
+            <div id="keyboard" class="keyboard" aria-label="Klávesnica"></div>
+        </section>
+        
+        <section id="leaderboard-view" class="panel leaderboard-panel hidden">
+            <h2>Leaderboard</h2>
+            <ol id="leaderboard" class="leaderboard">
+                <li>Načítavam...</li>
+            </ol>
+        </section>
+
+        <aside class="sidebar">
+            <section class="panel auth-panel">
+                <h2>Prihlásenie</h2>
+                <form id="auth-form">
+                    <input id="email" type="email" placeholder="Email" autocomplete="email" required>
+                    <input id="password" type="password" placeholder="Heslo" autocomplete="current-password" required minlength="6">
+                    <input id="display-name" type="text" placeholder="Meno v tabuľke" maxlength="24">
+                    <div class="auth-actions">
+                        <button type="submit">Prihlásiť</button>
+                        <button id="register" class="secondary-button" type="button">Registrovať</button>
+                    </div>
+                </form>
+            </section>
+        </aside>
+    </main>
+
+    <script type="module" src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>
