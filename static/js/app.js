@@ -168,7 +168,7 @@ function startNewGame() {
     createBoard();
     resetKeyboard();
     setMessage("");
-    
+
     // Switch back to game view if we were on the leaderboard
     document.body.classList.remove("view-leaderboard");
     if (navLeaderboard) {
@@ -200,13 +200,11 @@ function removeLetter() {
 
 function setKeyState(letter, state) {
     const button = keyboard.querySelector(`[data-key="${letter}"]`);
-    const rank = { "": 0, "key-absent": 1, "key-present": 2, "key-correct": 3 };
-    const currentState = ["key-correct", "key-present", "key-absent"].find((className) => button?.classList.contains(className)) || "";
-
-    if (button && rank[state] > rank[currentState]) {
-        button.classList.remove("key-correct", "key-present", "key-absent");
-        button.classList.add(state);
-    }
+    if (!button) return;
+    // Zelená má prednosť – raz zelená, vždy zelená
+    if (button.classList.contains("key-correct")) return;
+    button.classList.remove("key-correct", "key-absent");
+    button.classList.add(state);
 }
 
 function scoreGuess(guess) {
@@ -272,10 +270,14 @@ async function submitGuess() {
     const guess = getCurrentGuess();
     const states = scoreGuess(guess);
 
+    const lettersInWord = new Set(targetWord.split(""));
+
     states.forEach((state, col) => {
         const tile = getTile(currentRow, col);
         tile.classList.add(state);
-        setKeyState(guess[col], `key-${state}`);
+        // Klávesnica: zelená = písmeno je v slove, čierna = nie je
+        const keyState = lettersInWord.has(guess[col]) ? "key-correct" : "key-absent";
+        setKeyState(guess[col], keyState);
     });
 
     if (guess === targetWord) {

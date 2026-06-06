@@ -297,15 +297,20 @@ body:not(.view-leaderboard) .leaderboard-panel {
     color: #ffffff;
 }
 
-.present, .key-present {
+.present {
     background-color: var(--present-color);
     border-color: var(--present-color);
     color: #ffffff;
 }
 
-.absent, .key-absent {
+.absent {
     background-color: var(--absent-color);
     border-color: var(--absent-color);
+    color: #ffffff;
+}
+
+.key-absent {
+    background-color: #1a1a1b;
     color: #ffffff;
 }
 
