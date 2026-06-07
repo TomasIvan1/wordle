@@ -70,6 +70,12 @@ const deleteAccountModal = document.querySelector("#delete-account-modal");
 const modalDeleteYes = document.querySelector("#modal-delete-yes");
 const modalDeleteNo = document.querySelector("#modal-delete-no");
 
+const gameOverModal = document.querySelector("#game-over-modal");
+const gameOverTitle = document.querySelector("#game-over-title");
+const gameOverMessage = document.querySelector("#game-over-message");
+const modalGameOverNew = document.querySelector("#modal-game-over-new");
+const modalGameOverClose = document.querySelector("#modal-game-over-close");
+
 let currentUser = null;
 let targetWord = "";
 let currentRow = 0;
@@ -85,6 +91,12 @@ let isLoginMode = true;
 
 async function api(path, method = "GET", body = null) {
     const options = { method, headers: { "Content-Type": "application/json" } };
+    if (auth.currentUser) {
+        try {
+            const token = await auth.currentUser.getIdToken();
+            options.headers["Authorization"] = `Bearer ${token}`;
+        } catch (e) {}
+    }
     if (body) options.body = JSON.stringify(body);
     const res = await fetch(path, options);
     return res.json();
@@ -231,7 +243,6 @@ function scoreGuess(guess) {
 
 async function submitScore(attempts, won) {
     if (!currentUser) {
-        setMessage(`${won ? `Vyhral si na ${attempts}` : "Prehra"}. Prihlás sa, aby sa história uložila.`);
         return;
     }
 
@@ -239,14 +250,8 @@ async function submitScore(attempts, won) {
     const result = await api("/api/score", "POST", { attempts, elapsedSeconds, word: targetWord, won });
 
     if (won) {
-        if (result.newRecord) {
-            setMessage(`Výhra na ${attempts}. Nový rekord uložený 🔥`, 0);
-        } else {
-            setMessage(`Výhra na ${attempts}. Rekord ostáva ${result.oldAttempts} pokusov / ${result.oldSeconds}s.`, 0);
-        }
         loadLeaderboard();
     }
-    // pri prehre správa ostáva z submitGuess – neprepíšeme ju
 }
 
 async function submitGuess() {
@@ -268,20 +273,20 @@ async function submitGuess() {
 
     if (guess === targetWord) {
         gameOver = true;
+        showGameOverModal(true, currentRow + 1, targetWord);
         await submitScore(currentRow + 1, true);
         return;
     }
 
     if (currentRow === ROWS - 1) {
         gameOver = true;
-        setMessage(`Koniec hry. Správne slovo bolo ${targetWord}.`, 0);
+        showGameOverModal(false, currentRow + 1, targetWord);
         await submitScore(currentRow + 1, false);
         return;
     }
 
     currentRow++;
     currentCol = 0;
-    setMessage("Skús ďalšie slovo.");
 }
 
 function handleKey(key) {
@@ -306,20 +311,39 @@ function handlePhysicalKeyboard(event) {
 // Leaderboard
 // ---------------------------------------------------------------------------
 
-function renderLeaderboard(scores) {
+let lbPage = 1;
+let histPage = 1;
+const ITEMS_PER_PAGE = 8;
+
+function updatePagination(type, total, page, limit) {
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    
+    document.getElementById(`${type}-pagination`).style.display = total > 0 ? "flex" : "none";
+    document.getElementById(`${type}-page-info`).textContent = `${page} / ${totalPages}`;
+    
+    document.getElementById(`${type}-prev`).disabled = page <= 1;
+    document.getElementById(`${type}-next`).disabled = page >= totalPages;
+}
+
+document.getElementById("lb-prev").addEventListener("click", () => { if (lbPage > 1) { lbPage--; loadLeaderboard(); } });
+document.getElementById("lb-next").addEventListener("click", () => { lbPage++; loadLeaderboard(); });
+document.getElementById("hist-prev").addEventListener("click", () => { if (histPage > 1) { histPage--; loadHistory(); } });
+document.getElementById("hist-next").addEventListener("click", () => { histPage++; loadHistory(); });
+
+function renderLeaderboard(scores, offset = 0) {
     leaderboard.innerHTML = "";
     if (!scores.length) {
         leaderboard.innerHTML = "<li class='lb-empty'>Zatiaľ žiadne skóre.</li>";
         return;
     }
-    const medals = ["🥇", "🥈", "🥉"];
     scores.forEach((entry, index) => {
+        const globalIndex = offset + index;
         const item = document.createElement("li");
-        item.className = `lb-item ${index < 3 ? `lb-top-${index + 1}` : ""}`;
+        item.className = `lb-item ${globalIndex < 3 ? `lb-top-${globalIndex + 1}` : ""}`;
 
         const rank = document.createElement("span");
         rank.className = "lb-rank";
-        rank.textContent = index < 3 ? medals[index] : `${index + 1}.`;
+        rank.textContent = `${globalIndex + 1}.`;
 
         const info = document.createElement("div");
         info.className = "lb-info";
@@ -336,7 +360,6 @@ function renderLeaderboard(scores) {
 
         const scoreEl = document.createElement("span");
 
-
         item.append(rank, info, scoreEl);
         leaderboard.appendChild(item);
     });
@@ -344,12 +367,15 @@ function renderLeaderboard(scores) {
 
 async function loadLeaderboard() {
     try {
-        const scores = await api("/api/leaderboard");
-        renderLeaderboard(scores);
+        const data = await api(`/api/leaderboard?page=${lbPage}&limit=${ITEMS_PER_PAGE}`);
+        renderLeaderboard(data.items || [], (lbPage - 1) * ITEMS_PER_PAGE);
+        updatePagination("lb", data.total || 0, lbPage, ITEMS_PER_PAGE);
     } catch {
         leaderboard.innerHTML = "<li>Leaderboard sa nepodarilo načítať.</li>";
+        document.getElementById("lb-pagination").style.display = "none";
     }
 }
+
 
 // ---------------------------------------------------------------------------
 // História hier
@@ -401,11 +427,12 @@ function renderHistory(entries) {
 async function loadHistory() {
     historyList.innerHTML = "<li class='lb-empty'>Načítavam...</li>";
     try {
-        const entries = await api("/api/history");
-        console.log(entries)
-        renderHistory(entries);
+        const data = await api(`/api/history?page=${histPage}&limit=${ITEMS_PER_PAGE}`);
+        renderHistory(data.items || []);
+        updatePagination("hist", data.total || 0, histPage, ITEMS_PER_PAGE);
     } catch {
         historyList.innerHTML = "<li>Históriu sa nepodarilo načítať.</li>";
+        document.getElementById("hist-pagination").style.display = "none";
     }
 }
 
@@ -463,16 +490,10 @@ authForm.addEventListener("submit", async (e) => {
             const fallbackName = email.split("@")[0];
             const name = displayName.trim() || fallbackName;
 
-            const result = await api("/api/register", "POST", { email, password, name });
-            if (result.error) {
-                setMessage(result.error.includes("zaregistrovaný") ? "Tento email sa už používa." : result.error);
-                return;
-            }
-
-            const creds = await signInWithEmailAndPassword(auth, email, password);
+            const creds = await createUserWithEmailAndPassword(auth, email, password);
             await updateProfile(creds.user, { displayName: name });
             const idToken = await creds.user.getIdToken();
-            await api("/api/login", "POST", { idToken });
+            await api("/api/login", "POST", { idToken, name: name });
 
             emailInput.value = "";
             passwordInput.value = "";
@@ -488,7 +509,7 @@ authForm.addEventListener("submit", async (e) => {
         } catch (error) {
             if (error.code === "auth/email-already-in-use") setMessage("Tento email sa už používa.");
             else if (error.code === "auth/weak-password") setMessage("Heslo je príliš slabé (min. 6 znakov).");
-            else setMessage("Chyba pri registrácii.");
+            else setMessage("Chyba pri registrácii: " + error.message);
         }
     }
 });
@@ -564,6 +585,19 @@ if (modalYes && modalNo) {
     modalNo.addEventListener("click", () => newGameModal.close());
 }
 if (newGameModal) newGameModal.addEventListener("click", (e) => { if (e.target === newGameModal) newGameModal.close(); });
+
+if (modalGameOverNew) modalGameOverNew.addEventListener("click", () => { gameOverModal.close(); startNewGame(); });
+if (modalGameOverClose) modalGameOverClose.addEventListener("click", () => gameOverModal.close());
+if (gameOverModal) gameOverModal.addEventListener("click", (e) => { if (e.target === gameOverModal) gameOverModal.close(); });
+
+function showGameOverModal(won, attempts, word) {
+    if (!gameOverModal) return;
+    gameOverTitle.textContent = won ? "Výhra!" : "Prehra";
+    gameOverMessage.textContent = won 
+        ? `Uhádol si slovo ${word} na ${attempts}. pokus.` 
+        : `Správne slovo bolo ${word}. Možno nabudúce!`;
+    gameOverModal.showModal();
+}
 
 document.addEventListener("keydown", handlePhysicalKeyboard);
 

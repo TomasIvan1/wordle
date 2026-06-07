@@ -1,81 +1,67 @@
 import os
 import random
 import secrets
+import requests
 from flask import Flask, render_template, request, jsonify, session
+
 import firebase_admin
-from firebase_admin import auth, credentials, db
+from firebase_admin import auth, credentials
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(32)
 
-# ---------------------------------------------------------------------------
-# Firebase – inicializácia
-# ---------------------------------------------------------------------------
+DB_URL = "https://wordle-e5e3d-default-rtdb.europe-west1.firebasedatabase.app"
 
-cred = credentials.Certificate("serviceAccountKey.json")
-firebase_admin.initialize_app(cred, {
-    "databaseURL": "https://wordle-e5e3d-default-rtdb.europe-west1.firebasedatabase.app"
-})
+try:
+    cred = credentials.Certificate("serviceAccountKey.json")
+    firebase_admin.initialize_app(cred)
+except Exception as e:
+    print("Firebase init error:", e)
 
 WORDS = [
-    "MACKA", "KNIHA", "SKOLA", "HRADY", "KVETY",
-    "MESTO", "PLAME", "STROM", "VLAKY", "OBLAK",
-    "MOREA", "KARTA", "LAMPA", "CESTA", "PESIA",
-    "RUKAV", "SLOVO", "DENIK", "NOZIK", "ZEBRA",
+    "OBRAZ", "SLOVO", "MESTO", "STROM", "LISKA", "MACKA", "KNIHA", "SKOLA", "VLAKY", "OBLAK",
+    "LAMPA", "CESTA", "RUKAV", "NOZIK", "ZEBRA", "DVERE", "STENA", "KVETY", "HRADY", "PISMO",
+    "FARBA", "KARTA", "BRANA", "DUSIK", "HUSLE", "BUBON", "VLAHA", "POHAR", "RYBAR", "DOSKA",
+    "HLINA", "SLNKO", "TEPLO", "ZLATO", "KABAT", "BUNDA", "SALKA", "MISKA", "VEDRO", "METLA",
+    "ZIVOT", "KAKAO", "MRKVA", "KAPOR", "ZAJAC", "HOLUB", "KOCKA", "SOKOL", "ZAMOK", "KLUCE",
+    "KRUHY", "LODKA", "MASLO", "CHYBA", "TIGER", "VODKA", "SIRUP", "ROZOK", "KOLAC", "GULAS",
+    "SALAT", "VECER", "VEDEC", "ZOSIT", "PASIK", "SOCHA", "HEREC", "TANEC", "SPORT", "HOKEJ",
+    "TENIS", "BAZEN", "SKALA", "KOREN", "TRAVA", "SANKY", "BAGER", "ZAKON", "PRAVO", "VYZVA",
+    "NAZOR", "SMERY", "VOLBA", "SATKA", "BRADA", "HLAVA", "PALEC", "NAROD", "ZASAH", "TOVAR",
+    "OBJAV", "NAKUP", "VYPIS", "KOSIK", "PEKAR", "MLYNY", "FARMA", "KRAVA", "PRASA", "BARAN",
+    "SOMAR", "MIERA", "SKORE", "ANJEL"
 ]
 
-# ---------------------------------------------------------------------------
-# Pomocné funkcie
-# ---------------------------------------------------------------------------
+def current_user_token():
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        return auth_header.split("Bearer ")[1]
+    return None
 
 def current_user_id():
+    token = current_user_token()
+    if token:
+        decoded = verify_token(token)
+        if decoded:
+            return decoded["uid"]
     return session.get("user_id")
 
+def current_decoded_token():
+    token = current_user_token()
+    if token:
+        return verify_token(token)
+    return None
 
 def verify_token(id_token: str):
     try:
         return auth.verify_id_token(id_token)
-    except Exception:
+    except Exception as e:
+        print(f"Token verification failed: {e}")
         return None
-
-
-# ---------------------------------------------------------------------------
-# Routes – stránka
-# ---------------------------------------------------------------------------
 
 @app.route("/")
 def index():
     return render_template("index.html")
-
-
-# ---------------------------------------------------------------------------
-# API – auth
-# ---------------------------------------------------------------------------
-
-@app.route("/api/register", methods=["POST"])
-def register():
-    data = request.get_json()
-    email = (data.get("email") or "").strip().lower()
-    password = data.get("password") or ""
-    name = (data.get("name") or email.split("@")[0]).strip()
-
-    if not email or not password:
-        return jsonify({"error": "Email a heslo sú povinné."}), 400
-    if len(password) < 6:
-        return jsonify({"error": "Heslo musí mať aspoň 6 znakov."}), 400
-
-    try:
-        user = auth.create_user(email=email, password=password, display_name=name)
-
-        db.reference(f"users/{user.uid}").set({"name": name, "email": email})
-        db.reference(f"players/{user.uid}").set({"name": name})
-
-        return jsonify({"uid": user.uid, "name": name, "email": email})
-    except auth.EmailAlreadyExistsError:
-        return jsonify({"error": "Email je už zaregistrovaný."}), 409
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
 
 @app.route("/api/login", methods=["POST"])
 def login():
@@ -87,20 +73,21 @@ def login():
         return jsonify({"error": "Neplatný token."}), 401
 
     uid = decoded["uid"]
-    user = auth.get_user(uid)
-    name = user.display_name or user.email.split("@")[0]
+    email = decoded.get("email", "")
+    name = decoded.get("name") or data.get("name") or email.split("@")[0] if email else "Anonym"
 
     session["user_id"] = uid
     session["user_name"] = name
 
-    db.reference(f"players/{uid}").update({"lastLoginAt": {".sv": "timestamp"}})
-    db.reference(f"users/{uid}").update({
+    auth_param = f"?auth={id_token}"
+    requests.patch(f"{DB_URL}/players/{uid}.json{auth_param}", json={"lastLoginAt": {"$sv": "timestamp"}, "name": name})
+    requests.patch(f"{DB_URL}/users/{uid}.json{auth_param}", json={
         "name": name,
-        "email": user.email,
-        "lastLoginAt": {".sv": "timestamp"},
+        "email": email,
+        "lastLoginAt": {"$sv": "timestamp"},
     })
 
-    return jsonify({"uid": uid, "name": name, "email": user.email})
+    return jsonify({"uid": uid, "name": name, "email": email})
 
 
 @app.route("/api/logout", methods=["POST"])
@@ -111,24 +98,18 @@ def logout():
 
 @app.route("/api/me")
 def me():
-    uid = current_user_id()
-    if not uid:
+    decoded = current_decoded_token()
+    if not decoded:
         return jsonify({"user": None})
-    try:
-        user = auth.get_user(uid)
-        name = user.display_name or user.email.split("@")[0]
-        return jsonify({"user": {"uid": uid, "name": name, "email": user.email}})
-    except Exception:
-        return jsonify({"user": None})
+    uid = decoded["uid"]
+    name = decoded.get("name") or decoded.get("email", "").split("@")[0]
+    return jsonify({"user": {"uid": uid, "name": name, "email": decoded.get("email")}})
 
-
-# ---------------------------------------------------------------------------
-# API – meno používateľa
-# ---------------------------------------------------------------------------
 
 @app.route("/api/user/name", methods=["POST"])
 def update_name():
     uid = current_user_id()
+    token = current_user_token()
     if not uid:
         return jsonify({"error": "Nie si prihlásený."}), 401
 
@@ -138,14 +119,14 @@ def update_name():
         return jsonify({"error": "Meno nemôže byť prázdne."}), 400
 
     try:
-        auth.update_user(uid, display_name=new_name)
-        db.reference(f"users/{uid}").update({"name": new_name})
-        db.reference(f"players/{uid}").update({"name": new_name})
+        # Frontend updates profile directly, backend just updates DB
+        auth_param = f"?auth={token}" if token else ""
+        requests.patch(f"{DB_URL}/users/{uid}.json{auth_param}", json={"name": new_name})
+        requests.patch(f"{DB_URL}/players/{uid}.json{auth_param}", json={"name": new_name})
 
-        score_ref = db.reference(f"scores/{uid}")
-        existing = score_ref.get()
-        if existing:
-            score_ref.update({"name": new_name})
+        score_res = requests.get(f"{DB_URL}/scores/{uid}.json{auth_param}")
+        if score_res.status_code == 200 and score_res.json():
+            requests.patch(f"{DB_URL}/scores/{uid}.json{auth_param}", json={"name": new_name})
 
         session["user_name"] = new_name
         return jsonify({"ok": True, "name": new_name})
@@ -153,25 +134,20 @@ def update_name():
         return jsonify({"error": str(e)}), 500
 
 
-# ---------------------------------------------------------------------------
-# API – slová
-# ---------------------------------------------------------------------------
-
 @app.route("/api/word/random")
 def random_word():
     return jsonify({"word": random.choice(WORDS)})
 
 
-# ---------------------------------------------------------------------------
-# API – skóre
-# ---------------------------------------------------------------------------
-
 @app.route("/api/score", methods=["POST"])
 def save_score():
-    uid = current_user_id()
-    if not uid:
+    decoded = current_decoded_token()
+    token = current_user_token()
+    if not decoded:
         return jsonify({"error": "Nie si prihlásený."}), 401
 
+    uid = decoded["uid"]
+    
     data = request.get_json()
     attempts = int(data["attempts"])
     elapsed = int(data["elapsedSeconds"])
@@ -179,13 +155,14 @@ def save_score():
     won = bool(data.get("won", True))
     score = attempts * 1000 + elapsed
 
-    user = auth.get_user(uid)
-    name = user.display_name or user.email.split("@")[0]
+    auth_param = f"?auth={token}" if token else ""
+    user_res = requests.get(f"{DB_URL}/users/{uid}.json{auth_param}")
+    user_data = user_res.json() if user_res.status_code == 200 and user_res.json() else {}
+    name = user_data.get("name") or decoded.get("name") or decoded.get("email", "").split("@")[0] or "Anonym"
 
     import time
     timestamp = int(time.time() * 1000)
 
-    # Uložiť do histórie (každá hra zvlášť)
     history_entry = {
         "attempts": attempts,
         "elapsedSeconds": elapsed,
@@ -193,23 +170,22 @@ def save_score():
         "won": won,
         "playedAt": timestamp,
     }
-    db.reference(f"history/{uid}").push(history_entry)
+    requests.post(f"{DB_URL}/history/{uid}.json{auth_param}", json=history_entry)
 
-    # Uložiť/aktualizovať najlepšie skóre (len ak výhra)
     if not won:
         return jsonify({"saved": True, "newRecord": False, "won": False})
 
-    score_ref = db.reference(f"scores/{uid}")
-    existing = score_ref.get()
+    score_res = requests.get(f"{DB_URL}/scores/{uid}.json{auth_param}")
+    existing = score_res.json() if score_res.status_code == 200 else None
 
     if not existing or score < existing.get("score", float("inf")):
-        score_ref.set({
+        requests.put(f"{DB_URL}/scores/{uid}.json{auth_param}", json={
             "name": name,
             "attempts": attempts,
             "elapsedSeconds": elapsed,
             "score": score,
             "word": word,
-            "updatedAt": {".sv": "timestamp"},
+            "updatedAt": timestamp,
         })
         return jsonify({"saved": True, "newRecord": True})
 
@@ -223,49 +199,65 @@ def save_score():
 
 @app.route("/api/leaderboard")
 def leaderboard():
-    data = db.reference("scores").get()
+    res = requests.get(f"{DB_URL}/scores.json")
+    if res.status_code != 200:
+        return jsonify({"items": [], "total": 0})
+    data = res.json()
     if not data:
-        return jsonify([])
-    entries = sorted(data.values(), key=lambda x: x.get("score", float("inf")))[:10]
-    return jsonify(entries)
+        return jsonify({"items": [], "total": 0})
+    
+    page = int(request.args.get("page", 1))
+    limit = int(request.args.get("limit", 10))
+    start = (page - 1) * limit
+    end = start + limit
 
+    entries = sorted(data.values(), key=lambda x: x.get("score", float("inf")))
+    return jsonify({
+        "items": entries[start:end],
+        "total": len(entries)
+    })
 
-# ---------------------------------------------------------------------------
-# API – história hier
-# ---------------------------------------------------------------------------
 
 @app.route("/api/history")
 def get_history():
     uid = current_user_id()
-    print(uid)
+    token = current_user_token()
     if not uid:
         return jsonify({"error": "Nie si prihlásený."}), 401
 
-    data = db.reference(f"history/{uid}").get()
+    auth_param = f"?auth={token}" if token else ""
+    res = requests.get(f"{DB_URL}/history/{uid}.json{auth_param}")
+    
+    data = res.json() if res.status_code == 200 else None
     if not data:
-        return jsonify([])
+        return jsonify({"items": [], "total": 0})
 
+    page = int(request.args.get("page", 1))
+    limit = int(request.args.get("limit", 10))
+    start = (page - 1) * limit
+    end = start + limit
 
-    entries = sorted(data.values(), key=lambda x: x.get("playedAt", 0), reverse=True)[:50]
-    return jsonify(entries)
+    entries = sorted(data.values(), key=lambda x: x.get("playedAt", 0), reverse=True)
+    return jsonify({
+        "items": entries[start:end],
+        "total": len(entries)
+    })
 
-
-# ---------------------------------------------------------------------------
-# API – vymazanie účtu
-# ---------------------------------------------------------------------------
 
 @app.route("/api/user/delete", methods=["POST"])
 def delete_account():
     uid = current_user_id()
+    token = current_user_token()
     if not uid:
         return jsonify({"error": "Nie si prihlásený."}), 401
 
     try:
-        db.reference(f"scores/{uid}").delete()
-        db.reference(f"history/{uid}").delete()
-        db.reference(f"players/{uid}").delete()
-        db.reference(f"users/{uid}").delete()
-        auth.delete_user(uid)
+        auth_param = f"?auth={token}" if token else ""
+        requests.delete(f"{DB_URL}/scores/{uid}.json{auth_param}")
+        requests.delete(f"{DB_URL}/history/{uid}.json{auth_param}")
+        requests.delete(f"{DB_URL}/players/{uid}.json{auth_param}")
+        requests.delete(f"{DB_URL}/users/{uid}.json{auth_param}")
+        # auth.delete_user(uid) -> we leave this out to bypass Service Account. Frontend can delete if needed.
         session.clear()
         return jsonify({"ok": True})
     except Exception as e:

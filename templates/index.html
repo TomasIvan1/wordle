@@ -56,6 +56,11 @@
             <ol id="leaderboard" class="leaderboard">
                 <li>Načítavam...</li>
             </ol>
+            <div id="lb-pagination" class="pagination" style="display: none;">
+                <button id="lb-prev" class="secondary-button" disabled>&larr;</button>
+                <span id="lb-page-info">1 / 1</span>
+                <button id="lb-next" class="secondary-button" disabled>&rarr;</button>
+            </div>
         </section>
 
         <section id="history-view" class="panel history-panel">
@@ -63,6 +68,11 @@
             <ol id="history-list" class="leaderboard">
                 <li>Načítavam...</li>
             </ol>
+            <div id="hist-pagination" class="pagination" style="display: none;">
+                <button id="hist-prev" class="secondary-button" disabled>&larr;</button>
+                <span id="hist-page-info">1 / 1</span>
+                <button id="hist-next" class="secondary-button" disabled>&rarr;</button>
+            </div>
         </section>
 
         <aside class="sidebar">
@@ -174,6 +184,17 @@
             <div class="modal-actions">
                 <button id="modal-delete-yes" class="danger-button" type="button">Áno, vymazať</button>
                 <button id="modal-delete-no" class="secondary-button" type="button">Zrušiť</button>
+            </div>
+        </div>
+    </dialog>
+
+    <dialog id="game-over-modal" class="modal">
+        <div class="modal-content">
+            <h2 id="game-over-title">Koniec hry</h2>
+            <p id="game-over-message"></p>
+            <div class="modal-actions">
+                <button id="modal-game-over-new" class="primary-button" type="button">Nová hra</button>
+                <button id="modal-game-over-close" class="secondary-button" type="button">Zavrieť</button>
             </div>
         </div>
     </dialog>

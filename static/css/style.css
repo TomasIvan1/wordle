@@ -809,18 +809,42 @@ body:not(.view-history) .history-panel {
 }
 
 .lb-top-1 {
-    background: linear-gradient(135deg, #fffbeb, #fef3c7);
-    border-color: #fbbf24;
+    border-color: var(--correct-color);
+    background-color: rgba(120, 177, 89, 0.1);
+}
+.lb-top-1 .lb-rank {
+    color: var(--correct-color);
+    font-weight: 800;
+}
+.lb-top-1 .lb-score {
+    background-color: var(--correct-color);
+    color: #ffffff;
 }
 
 .lb-top-2 {
-    background: linear-gradient(135deg, #f8fafc, #e2e8f0);
-    border-color: #94a3b8;
+    border-color: var(--present-color);
+    background-color: rgba(241, 194, 50, 0.1);
+}
+.lb-top-2 .lb-rank {
+    color: var(--present-color);
+    font-weight: 800;
+}
+.lb-top-2 .lb-score {
+    background-color: var(--present-color);
+    color: #ffffff;
 }
 
 .lb-top-3 {
-    background: linear-gradient(135deg, #fff7f3, #ffe8d6);
-    border-color: #fb923c;
+    border-color: var(--absent-color);
+    background-color: rgba(160, 170, 181, 0.1);
+}
+.lb-top-3 .lb-rank {
+    color: var(--absent-color);
+    font-weight: 800;
+}
+.lb-top-3 .lb-score {
+    background-color: var(--absent-color);
+    color: #ffffff;
 }
 
 .lb-rank {
@@ -863,11 +887,6 @@ body:not(.view-history) .history-panel {
     padding: 3px 8px;
     flex-shrink: 0;
     letter-spacing: 0.03em;
-}
-
-.lb-top-1 .lb-score {
-    background: #fef3c7;
-    color: #92400e;
 }
 
 /* ---------------------------------------------------------------------------
@@ -932,4 +951,35 @@ body:not(.view-history) .history-panel {
 .history-badge-loss {
     background: #fee2e2;
     color: #dc2626;
+}
+
+/* ---------------------------------------------------------------------------
+   Paging
+   --------------------------------------------------------------------------- */
+
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 16px;
+    width: 100%;
+}
+
+.pagination button {
+    padding: 6px 12px;
+    font-size: 16px;
+}
+
+.pagination button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #f1f5f9;
+    color: #94a3b8;
+}
+
+.pagination span {
+    font-weight: 700;
+    font-size: 14px;
+    color: #64748b;
 }
