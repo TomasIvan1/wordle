@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wordle Online</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body class="auth-required">
@@ -48,19 +49,58 @@
 
         <aside class="sidebar">
             <section class="panel auth-panel">
-                <h2>Prihlásenie</h2>
+                <div class="auth-header">
+                    <h2>Prihlásenie</h2>
+                    <p>Vitaj! Pre ukladanie skóre sa prihlás.</p>
+                </div>
                 <form id="auth-form">
-                    <input id="email" type="email" placeholder="Email" autocomplete="email" required>
-                    <input id="password" type="password" placeholder="Heslo" autocomplete="current-password" required minlength="6">
-                    <input id="display-name" type="text" placeholder="Meno v tabuľke" maxlength="24">
+                    <div class="input-group">
+                        <input id="email" type="email" placeholder="Tvoj Email" autocomplete="email" required>
+                    </div>
+                    <div class="input-group password-group">
+                        <input id="password" type="password" placeholder="Tvoje Heslo" autocomplete="current-password" required minlength="6">
+                        <button type="button" id="toggle-password" class="password-toggle" aria-label="Zobraziť heslo" tabindex="-1">
+                            <svg class="eye-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            <svg class="eye-off-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                        </button>
+                    </div>
+                    <div class="input-group" id="display-name-group" style="display: none;">
+                        <input id="display-name" type="text" placeholder="Meno do tabuľky (nepovinné)" maxlength="24">
+                    </div>
                     <div class="auth-actions">
-                        <button type="submit">Prihlásiť</button>
-                        <button id="register" class="secondary-button" type="button">Registrovať</button>
+                        <button type="submit" id="primary-auth-button" class="primary-button">Prihlásiť sa</button>
+                        <button id="toggle-auth-mode" class="secondary-button" type="button">Nová registrácia</button>
                     </div>
                 </form>
             </section>
         </aside>
     </main>
+
+    <dialog id="new-game-modal" class="modal">
+        <div class="modal-content">
+            <h2>Nová hra?</h2>
+            <p>Súčasná rozohraná hra sa stratí. Naozaj chceš pokračovať?</p>
+            <div class="modal-actions">
+                <button id="modal-yes" class="danger-button" type="button">Áno, nová hra</button>
+                <button id="modal-no" class="secondary-button" type="button">Zrušiť</button>
+            </div>
+        </div>
+    </dialog>
+
+    <dialog id="logout-modal" class="modal">
+        <div class="modal-content">
+            <h2>Odhlásenie</h2>
+            <p>Naozaj sa chceš odhlásiť zo svojho účtu?</p>
+            <div class="modal-actions">
+                <button id="modal-logout-yes" class="danger-button" type="button">Áno, odhlásiť</button>
+                <button id="modal-logout-no" class="secondary-button" type="button">Zrušiť</button>
+            </div>
+        </div>
+    </dialog>
+
+    <footer class="app-footer">
+        <p>&copy; 2026 Všetky práva vyhradené.</p>
+    </footer>
 
     <script type="module" src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>

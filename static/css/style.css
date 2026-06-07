@@ -3,14 +3,14 @@
 :root {
     --bg-color: #ffffff;
     --text-color: #1a1a1b;
-    --primary-color: #538d4e;
-    --primary-hover: #457541;
+    --primary-color: #78b159;
+    --primary-hover: #659a49;
     --border-color: #d3d6da;
-    --key-bg: #d3d6da;
-    --key-text: #1a1a1b;
-    --absent-color: #787c7e;
-    --present-color: #c9b458;
-    --correct-color: #6aaa64;
+    --key-bg: #dde1e8;
+    --key-text: #303e4d;
+    --absent-color: #a0aab5;
+    --present-color: #f1c232;
+    --correct-color: #78b159;
     --board-gap: 5px;
 }
 
@@ -23,6 +23,7 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    overflow-x: hidden;
 }
 
 .topbar {
@@ -90,6 +91,10 @@ button {
     transition: background 0.2s, opacity 0.2s, transform 0.1s ease-in-out;
 }
 
+button:focus, .modal:focus {
+    outline: none;
+}
+
 button:hover {
     background: var(--primary-hover);
     transform: translateY(-1px);
@@ -100,12 +105,14 @@ button:active {
 }
 
 .secondary-button {
-    background: #e2e8f0;
-    color: #1a1a1b;
+    background: #f1f5f9;
+    color: #475569;
+    font-weight: 700;
 }
 
 .secondary-button:hover {
-    background: #cbd5e1;
+    background: #e2e8f0;
+    color: #1e293b;
 }
 
 .icon-button {
@@ -135,18 +142,28 @@ button:active {
 
 input {
     font-family: 'Outfit', sans-serif;
-    border: 2px solid var(--border-color);
-    border-radius: 6px;
-    padding: 12px;
-    font-size: 16px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-size: 15px;
+    font-weight: 500;
     width: 100%;
     box-sizing: border-box;
     outline: none;
-    transition: border-color 0.2s;
+    background-color: #f8fafc;
+    color: #1e293b;
+    transition: all 0.2s ease;
+}
+
+input::placeholder {
+    color: #94a3b8;
+    font-weight: 400;
 }
 
 input:focus {
     border-color: var(--primary-color);
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(120, 177, 89, 0.15);
 }
 
 .layout {
@@ -193,14 +210,21 @@ body:not(.view-leaderboard) .leaderboard-panel {
 }
 
 .auth-panel, .leaderboard-panel {
-    background: #f8f9fa;
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 30px;
+    background: #ffffff;
+    border: 1px solid #f1f5f9;
+    border-radius: 16px;
+    padding: 32px;
     box-sizing: border-box;
     margin-bottom: 20px;
     width: 100%;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
     animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.auth-panel:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
 }
 
 @keyframes slideUpFade {
@@ -208,47 +232,158 @@ body:not(.view-leaderboard) .leaderboard-panel {
     to { opacity: 1; transform: translateY(0); }
 }
 
-.auth-panel h2, .leaderboard-panel h2 {
-    margin: 0 0 20px;
-    font-size: 24px;
+.auth-header {
     text-align: center;
+    margin-bottom: 24px;
+}
+
+.auth-header h2, .leaderboard-panel h2 {
+    margin: 0 0 8px;
+    font-size: 26px;
+    color: #1e293b;
+    font-weight: 800;
+}
+
+.auth-header p {
+    margin: 0;
+    font-size: 14px;
+    color: #64748b;
+    font-weight: 500;
 }
 
 .auth-panel form {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
     width: 100%;
+}
+
+.input-group {
+    width: 100%;
+}
+
+.password-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-group input {
+    padding-right: 45px;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 12px;
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    transition: color 0.2s;
+    box-shadow: none;
+}
+
+.password-toggle svg {
+    position: absolute;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+}
+
+.password-toggle .eye-off-icon {
+    opacity: 0;
+    transform: scale(0.5) rotate(-45deg);
+}
+
+.password-toggle .eye-icon {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+}
+
+.password-toggle.show-password .eye-icon {
+    opacity: 0;
+    transform: scale(0.5) rotate(45deg);
+}
+
+.password-toggle.show-password .eye-off-icon {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+}
+
+.password-toggle:hover {
+    color: #475569;
+    background: transparent;
+    transform: none;
+    box-shadow: none;
 }
 
 .auth-actions {
     display: flex;
+    flex-direction: column;
     gap: 10px;
-    margin-top: 10px;
+    margin-top: 8px;
 }
 .auth-actions button {
-    flex: 1;
+    width: 100%;
+    padding: 14px;
+    font-size: 15px;
+    border-radius: 8px;
+}
+
+.primary-button {
+    background-color: var(--primary-color);
+    color: #ffffff;
+    box-shadow: 0 4px 6px -1px rgba(120, 177, 89, 0.2), 0 2px 4px -1px rgba(120, 177, 89, 0.1);
+}
+
+.primary-button:hover {
+    background-color: var(--primary-hover);
+    box-shadow: 0 6px 8px -1px rgba(120, 177, 89, 0.3), 0 4px 6px -1px rgba(120, 177, 89, 0.15);
+}
+
+.game-panel {
+    position: relative;
 }
 
 .message {
-    font-weight: 600;
-    margin-bottom: 15px;
-    padding: 10px 15px;
-    border-radius: 6px;
+    position: absolute;
+    top: 25%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 100;
+    font-weight: 700;
+    font-size: 1.1rem;
+    padding: 20px 40px;
+    border-radius: 12px;
     text-align: center;
-    background: #1a1a1b;
-    color: #fff;
-    width: fit-content;
-    animation: fadeIn 0.3s;
+    background: #ffffff;
+    color: #1e293b;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15), 0 5px 15px rgba(0, 0, 0, 0.05);
+    width: max-content;
+    max-width: 90%;
+    animation: popInAlert 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
 .message:empty {
     display: none;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
+.message.fade-out {
+    animation: fadeOutAlert 0.3s forwards;
+}
+
+@keyframes popInAlert {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+    100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes fadeOutAlert {
+    0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
 }
 
 .board {
@@ -291,31 +426,41 @@ body:not(.view-leaderboard) .leaderboard-panel {
     100% { transform: scale(1); opacity: 1; }
 }
 
-.correct, .key-correct {
+.tile.correct {
     background-color: var(--correct-color);
-    border-color: var(--correct-color);
+    border: none;
     color: #ffffff;
 }
 
-.present {
+.tile.present {
     background-color: var(--present-color);
-    border-color: var(--present-color);
+    border: none;
     color: #ffffff;
 }
 
-.absent {
+.tile.absent {
     background-color: var(--absent-color);
-    border-color: var(--absent-color);
-    color: #ffffff;
-}
-
-.key-absent {
-    background-color: #1a1a1b;
+    border: none;
     color: #ffffff;
 }
 
 .tile.correct, .tile.present, .tile.absent {
     animation: flipIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.keyboard-row button.key-correct {
+    background-color: var(--correct-color);
+    color: #ffffff;
+}
+
+.keyboard-row button.key-present {
+    background-color: var(--present-color);
+    color: #ffffff;
+}
+
+.keyboard-row button.key-absent {
+    background-color: var(--absent-color);
+    color: #ffffff;
 }
 
 @keyframes flipIn {
@@ -337,17 +482,17 @@ body:not(.view-leaderboard) .leaderboard-panel {
     display: flex;
     width: 100%;
     justify-content: center;
-    gap: 6px;
+    gap: 8px;
 }
 
 .keyboard-row button {
     font-family: inherit;
-    font-weight: 700;
-    font-size: 1.1rem;
+    font-weight: 800;
+    font-size: 1.25rem;
     border: 0;
     padding: 0;
     height: 58px;
-    border-radius: 4px;
+    border-radius: 6px;
     background-color: var(--key-bg);
     color: var(--key-text);
     display: flex;
@@ -355,15 +500,28 @@ body:not(.view-leaderboard) .leaderboard-panel {
     align-items: center;
     text-transform: uppercase;
     flex: 1;
-    max-width: 43px;
+    max-width: 46px;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: background-color 0.1s, transform 0.1s;
+}
+
+.keyboard-row button:focus {
+    outline: none;
+}
+
+.keyboard-row button:not(.key-correct):not(.key-present):hover {
+    background-color: #d0d5de;
+}
+
+.keyboard-row button:not(.key-correct):not(.key-present):active {
+    background-color: var(--absent-color);
+    transform: scale(0.95);
 }
 
 .keyboard-row button.wide-button {
     flex: 1.5;
-    max-width: 65px;
-    font-size: 12px;
+    max-width: 68px;
+    font-size: 16px;
 }
 
 #new-game {
@@ -424,3 +582,75 @@ body:not(.view-leaderboard) .leaderboard-panel {
         font-size: 1rem;
     }
 }
+
+/* Modálne okno */
+.modal {
+    border: none;
+    border-radius: 12px;
+    padding: 0;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    max-width: 400px;
+    width: 90%;
+    margin: auto;
+}
+
+.modal::backdrop {
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+}
+
+.modal-content {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+}
+
+.modal-content h2 {
+    margin: 0;
+    font-size: 24px;
+}
+
+.modal-content p {
+    margin: 0;
+    color: #555;
+    font-size: 16px;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 8px;
+}
+
+.danger-button {
+    background-color: #ef4444;
+    color: white;
+}
+
+.danger-button:hover {
+    background-color: #dc2626;
+}
+
+/* Pätička stránky */
+.app-footer {
+    text-align: center;
+    padding: 24px 20px;
+    color: #94a3b8;
+    font-size: 14px;
+    font-weight: 500;
+    border-top: 1px solid #f1f5f9;
+    background-color: transparent;
+    margin-top: auto;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.app-footer p {
+    margin: 0;
+}
+
