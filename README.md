@@ -127,3 +127,9 @@ http://127.0.0.1:5000
 | `GET`  | `/api/word/random` | Náhodné slovo z databázy |
 | `POST` | `/api/score` | Uloženie skóre (iba ak je rekord) |
 | `GET`  | `/api/leaderboard` | Top 10 hráčov |
+
+---
+
+https://canva.link/i92ptt5qzchwmq7
+## Prezentácia
+
