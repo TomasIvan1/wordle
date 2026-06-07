@@ -244,7 +244,7 @@ def get_history():
     data = db.reference(f"history/{uid}").get()
     if not data:
         return jsonify([])
-    
+
 
     entries = sorted(data.values(), key=lambda x: x.get("playedAt", 0), reverse=True)[:50]
     return jsonify(entries)
