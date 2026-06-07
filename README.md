@@ -11,7 +11,6 @@ Webová hra Wordle v slovenčine s online leaderboardom, autentifikáciou cez Fi
 - [Technológie](#technológie)
 - [Štruktúra projektu](#štruktúra-projektu)
 - [Inštalácia a spustenie](#inštalácia-a-spustenie)
-- [Firebase konfigurácia](#firebase-konfigurácia)
 - [Herné pravidlá](#herné-pravidlá)
 - [API endpointy](#api-endpointy)
 
@@ -99,16 +98,6 @@ http://127.0.0.1:5000
 ```
 
 > **Poznámka:** Flask backend zabezpečuje len servovanie HTML stránky a záložné API. Samotná hra a autentifikácia bežia priamo v prehliadači cez Firebase SDK.
-
----
-
-## Firebase
-
-Projekt používa Firebase projekt `wordle-e5e3d`:
-
-- **Auth domain:** `wordle-e5e3d.firebaseapp.com`
-- **Realtime Database:** `https://wordle-e5e3d-default-rtdb.europe-west1.firebasedatabase.app`
-
 
 ---
 
