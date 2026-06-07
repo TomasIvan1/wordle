@@ -1,87 +1,42 @@
-import sqlite3
 import os
-import hashlib
+import random
 import secrets
 from flask import Flask, render_template, request, jsonify, session
+import firebase_admin
+from firebase_admin import auth, credentials, db
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(32)
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "wordle.db")
-
-
 # ---------------------------------------------------------------------------
-# Databáza – inicializácia
+# Firebase – inicializácia
 # ---------------------------------------------------------------------------
 
-def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+cred = credentials.Certificate("serviceAccountKey.json")
+firebase_admin.initialize_app(cred, {
+    "databaseURL": "https://wordle-e5e3d-default-rtdb.europe-west1.firebasedatabase.app"
+})
 
-
-def init_db():
-    conn = get_db()
-    c = conn.cursor()
-
-    # Tabuľka používateľov
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id        INTEGER PRIMARY KEY AUTOINCREMENT,
-            email     TEXT    UNIQUE NOT NULL,
-            password  TEXT    NOT NULL,
-            name      TEXT    NOT NULL,
-            created_at INTEGER DEFAULT (strftime('%s','now'))
-        )
-    """)
-
-    # Tabuľka slov
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS words (
-            id   INTEGER PRIMARY KEY AUTOINCREMENT,
-            word TEXT UNIQUE NOT NULL
-        )
-    """)
-
-    # Tabuľka skóre (jedno najlepšie skóre na používateľa)
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS scores (
-            id             INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id        INTEGER NOT NULL REFERENCES users(id),
-            attempts       INTEGER NOT NULL,
-            elapsed_seconds INTEGER NOT NULL,
-            score          INTEGER NOT NULL,
-            word           TEXT    NOT NULL,
-            updated_at     INTEGER DEFAULT (strftime('%s','now'))
-        )
-    """)
-
-    # Naplniť slová ak je tabuľka prázdna
-    words = [
-        "MACKA", "KNIHA", "SKOLA", "HRADY", "KVETY",
-        "MESTO", "PLAME", "STROM", "VLAKY", "OBLAK",
-        "MOREA", "KARTA", "LAMPA", "CESTA", "PESIA",
-        "RUKAV", "SLOVO", "DENIK", "NOZIK", "ZEBRA",
-    ]
-    c.executemany(
-        "INSERT OR IGNORE INTO words (word) VALUES (?)",
-        [(w,) for w in words]
-    )
-
-    conn.commit()
-    conn.close()
-
+WORDS = [
+    "MACKA", "KNIHA", "SKOLA", "HRADY", "KVETY",
+    "MESTO", "PLAME", "STROM", "VLAKY", "OBLAK",
+    "MOREA", "KARTA", "LAMPA", "CESTA", "PESIA",
+    "RUKAV", "SLOVO", "DENIK", "NOZIK", "ZEBRA",
+]
 
 # ---------------------------------------------------------------------------
 # Pomocné funkcie
 # ---------------------------------------------------------------------------
 
-def hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode()).hexdigest()
-
-
 def current_user_id():
     return session.get("user_id")
+
+
+def verify_token(id_token: str):
+    try:
+        return auth.verify_id_token(id_token)
+    except Exception:
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -109,42 +64,43 @@ def register():
     if len(password) < 6:
         return jsonify({"error": "Heslo musí mať aspoň 6 znakov."}), 400
 
-    conn = get_db()
     try:
-        conn.execute(
-            "INSERT INTO users (email, password, name) VALUES (?, ?, ?)",
-            (email, hash_password(password), name)
-        )
-        conn.commit()
-        user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
-        session["user_id"] = user["id"]
-        session["user_name"] = user["name"]
-        return jsonify({"id": user["id"], "name": user["name"], "email": email})
-    except sqlite3.IntegrityError:
+        user = auth.create_user(email=email, password=password, display_name=name)
+
+        db.reference(f"users/{user.uid}").set({"name": name, "email": email})
+        db.reference(f"players/{user.uid}").set({"name": name})
+
+        return jsonify({"uid": user.uid, "name": name, "email": email})
+    except auth.EmailAlreadyExistsError:
         return jsonify({"error": "Email je už zaregistrovaný."}), 409
-    finally:
-        conn.close()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/login", methods=["POST"])
 def login():
     data = request.get_json()
-    email = (data.get("email") or "").strip().lower()
-    password = data.get("password") or ""
+    id_token = data.get("idToken") or ""
 
-    conn = get_db()
-    user = conn.execute(
-        "SELECT * FROM users WHERE email = ? AND password = ?",
-        (email, hash_password(password))
-    ).fetchone()
-    conn.close()
+    decoded = verify_token(id_token)
+    if not decoded:
+        return jsonify({"error": "Neplatný token."}), 401
 
-    if not user:
-        return jsonify({"error": "Nesprávny email alebo heslo."}), 401
+    uid = decoded["uid"]
+    user = auth.get_user(uid)
+    name = user.display_name or user.email.split("@")[0]
 
-    session["user_id"] = user["id"]
-    session["user_name"] = user["name"]
-    return jsonify({"id": user["id"], "name": user["name"], "email": email})
+    session["user_id"] = uid
+    session["user_name"] = name
+
+    db.reference(f"players/{uid}").update({"lastLoginAt": {".sv": "timestamp"}})
+    db.reference(f"users/{uid}").update({
+        "name": name,
+        "email": user.email,
+        "lastLoginAt": {".sv": "timestamp"},
+    })
+
+    return jsonify({"uid": uid, "name": name, "email": user.email})
 
 
 @app.route("/api/logout", methods=["POST"])
@@ -158,12 +114,43 @@ def me():
     uid = current_user_id()
     if not uid:
         return jsonify({"user": None})
-    conn = get_db()
-    user = conn.execute("SELECT id, name, email FROM users WHERE id = ?", (uid,)).fetchone()
-    conn.close()
-    if not user:
+    try:
+        user = auth.get_user(uid)
+        name = user.display_name or user.email.split("@")[0]
+        return jsonify({"user": {"uid": uid, "name": name, "email": user.email}})
+    except Exception:
         return jsonify({"user": None})
-    return jsonify({"user": {"id": user["id"], "name": user["name"], "email": user["email"]}})
+
+
+# ---------------------------------------------------------------------------
+# API – meno používateľa
+# ---------------------------------------------------------------------------
+
+@app.route("/api/user/name", methods=["POST"])
+def update_name():
+    uid = current_user_id()
+    if not uid:
+        return jsonify({"error": "Nie si prihlásený."}), 401
+
+    data = request.get_json()
+    new_name = (data.get("name") or "").strip()
+    if not new_name:
+        return jsonify({"error": "Meno nemôže byť prázdne."}), 400
+
+    try:
+        auth.update_user(uid, display_name=new_name)
+        db.reference(f"users/{uid}").update({"name": new_name})
+        db.reference(f"players/{uid}").update({"name": new_name})
+
+        score_ref = db.reference(f"scores/{uid}")
+        existing = score_ref.get()
+        if existing:
+            score_ref.update({"name": new_name})
+
+        session["user_name"] = new_name
+        return jsonify({"ok": True, "name": new_name})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 # ---------------------------------------------------------------------------
@@ -172,12 +159,7 @@ def me():
 
 @app.route("/api/word/random")
 def random_word():
-    conn = get_db()
-    row = conn.execute("SELECT word FROM words ORDER BY RANDOM() LIMIT 1").fetchone()
-    conn.close()
-    if not row:
-        return jsonify({"error": "Žiadne slová v databáze."}), 500
-    return jsonify({"word": row["word"]})
+    return jsonify({"word": random.choice(WORDS)})
 
 
 # ---------------------------------------------------------------------------
@@ -194,57 +176,103 @@ def save_score():
     attempts = int(data["attempts"])
     elapsed = int(data["elapsedSeconds"])
     word = data["word"]
+    won = bool(data.get("won", True))
     score = attempts * 1000 + elapsed
 
-    conn = get_db()
-    existing = conn.execute("SELECT * FROM scores WHERE user_id = ?", (uid,)).fetchone()
+    user = auth.get_user(uid)
+    name = user.display_name or user.email.split("@")[0]
 
-    if not existing:
-        conn.execute(
-            "INSERT INTO scores (user_id, attempts, elapsed_seconds, score, word) VALUES (?, ?, ?, ?, ?)",
-            (uid, attempts, elapsed, score, word)
-        )
-        conn.commit()
-        conn.close()
+    import time
+    timestamp = int(time.time() * 1000)
+
+    # Uložiť do histórie (každá hra zvlášť)
+    history_entry = {
+        "attempts": attempts,
+        "elapsedSeconds": elapsed,
+        "word": word,
+        "won": won,
+        "playedAt": timestamp,
+    }
+    db.reference(f"history/{uid}").push(history_entry)
+
+    # Uložiť/aktualizovať najlepšie skóre (len ak výhra)
+    if not won:
+        return jsonify({"saved": True, "newRecord": False, "won": False})
+
+    score_ref = db.reference(f"scores/{uid}")
+    existing = score_ref.get()
+
+    if not existing or score < existing.get("score", float("inf")):
+        score_ref.set({
+            "name": name,
+            "attempts": attempts,
+            "elapsedSeconds": elapsed,
+            "score": score,
+            "word": word,
+            "updatedAt": {".sv": "timestamp"},
+        })
         return jsonify({"saved": True, "newRecord": True})
 
-    if score < existing["score"]:
-        conn.execute(
-            """UPDATE scores
-               SET attempts=?, elapsed_seconds=?, score=?, word=?,
-                   updated_at=strftime('%s','now')
-               WHERE user_id=?""",
-            (attempts, elapsed, score, word, uid)
-        )
-        conn.commit()
-        conn.close()
-        return jsonify({"saved": True, "newRecord": True})
-
-    conn.close()
     return jsonify({
         "saved": False,
         "newRecord": False,
         "oldAttempts": existing["attempts"],
-        "oldSeconds": existing["elapsed_seconds"],
+        "oldSeconds": existing["elapsedSeconds"],
     })
 
 
 @app.route("/api/leaderboard")
 def leaderboard():
-    conn = get_db()
-    rows = conn.execute("""
-        SELECT u.name, s.attempts, s.elapsed_seconds, s.score, s.word
-        FROM scores s
-        JOIN users u ON u.id = s.user_id
-        ORDER BY s.score ASC
-        LIMIT 10
-    """).fetchall()
-    conn.close()
-    return jsonify([dict(r) for r in rows])
+    data = db.reference("scores").get()
+    if not data:
+        return jsonify([])
+    entries = sorted(data.values(), key=lambda x: x.get("score", float("inf")))[:10]
+    return jsonify(entries)
+
+
+# ---------------------------------------------------------------------------
+# API – história hier
+# ---------------------------------------------------------------------------
+
+@app.route("/api/history")
+def get_history():
+    uid = current_user_id()
+    print(uid)
+    if not uid:
+        return jsonify({"error": "Nie si prihlásený."}), 401
+
+    data = db.reference(f"history/{uid}").get()
+    if not data:
+        return jsonify([])
+    
+
+    entries = sorted(data.values(), key=lambda x: x.get("playedAt", 0), reverse=True)[:50]
+    return jsonify(entries)
+
+
+# ---------------------------------------------------------------------------
+# API – vymazanie účtu
+# ---------------------------------------------------------------------------
+
+@app.route("/api/user/delete", methods=["POST"])
+def delete_account():
+    uid = current_user_id()
+    if not uid:
+        return jsonify({"error": "Nie si prihlásený."}), 401
+
+    try:
+        db.reference(f"scores/{uid}").delete()
+        db.reference(f"history/{uid}").delete()
+        db.reference(f"players/{uid}").delete()
+        db.reference(f"users/{uid}").delete()
+        auth.delete_user(uid)
+        session.clear()
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    init_db()
     app.run(debug=True)

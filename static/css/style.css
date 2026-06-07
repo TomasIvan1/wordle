@@ -183,7 +183,8 @@ body.auth-required .layout {
     justify-content: center;
 }
 body.auth-required .game-panel,
-body.auth-required .leaderboard-panel {
+body.auth-required .leaderboard-panel,
+body.auth-required .history-panel {
     display: none !important;
 }
 body:not(.auth-required) .auth-panel {
@@ -191,13 +192,20 @@ body:not(.auth-required) .auth-panel {
 }
 
 /* View switching logic */
-body.view-leaderboard .game-panel {
+body.view-leaderboard .game-panel,
+body.view-history .game-panel {
     display: none;
 }
 body.view-leaderboard .leaderboard-panel {
     display: flex;
 }
+body.view-history .history-panel {
+    display: flex;
+}
 body:not(.view-leaderboard) .leaderboard-panel {
+    display: none;
+}
+body:not(.view-history) .history-panel {
     display: none;
 }
 
@@ -537,34 +545,7 @@ body:not(.view-leaderboard) .leaderboard-panel {
     align-items: center;
 }
 
-.leaderboard {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.leaderboard li {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 16px;
-    background: #f1f5f9;
-    border-radius: 8px;
-}
-
-.leaderboard strong {
-    font-size: 16px;
-}
-
-.leaderboard span {
-    font-size: 14px;
-    color: #64748b;
-    font-weight: 600;
-}
+/* leaderboard styles moved to bottom of file */
 
 .hidden {
     display: none !important;
@@ -636,6 +617,141 @@ body:not(.view-leaderboard) .leaderboard-panel {
     background-color: #dc2626;
 }
 
+/* Profil modálne okno */
+.profile-modal {
+    max-width: 420px;
+}
+
+.profile-modal .modal-content {
+    padding: 0;
+    gap: 0;
+    text-align: left;
+}
+
+.profile-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    position: relative;
+}
+
+.profile-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    flex-shrink: 0;
+}
+
+.profile-modal-header h2 {
+    margin: 0;
+    font-size: 20px;
+    flex: 1;
+}
+
+.modal-close-btn {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+}
+
+.modal-close-btn:hover {
+    color: #475569;
+    background: #f1f5f9;
+    transform: translateY(-50%) scale(1.1);
+}
+
+.profile-section {
+    padding: 20px 24px;
+}
+
+.profile-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #94a3b8;
+    margin-bottom: 10px;
+}
+
+.profile-name-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.profile-name-row input {
+    flex: 1;
+    padding: 10px 14px;
+    font-size: 14px;
+}
+
+.profile-save-btn {
+    padding: 10px 16px;
+    font-size: 14px;
+    border-radius: 8px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.profile-divider {
+    height: 1px;
+    background: #f1f5f9;
+    margin: 0 24px;
+}
+
+.profile-actions-list {
+    padding: 12px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.profile-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 8px;
+    text-align: left;
+    justify-content: flex-start;
+    transition: background 0.15s, color 0.15s;
+}
+
+.logout-btn {
+    background: transparent;
+    color: #475569;
+}
+
+.logout-btn:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+    transform: none;
+}
+
+.delete-btn {
+    background: transparent;
+    color: #ef4444;
+}
+
+.delete-btn:hover {
+    background: #fef2f2;
+    color: #dc2626;
+    transform: none;
+}
+
 /* Pätička stránky */
 .app-footer {
     text-align: center;
@@ -653,4 +769,167 @@ body:not(.view-leaderboard) .leaderboard-panel {
 .app-footer p {
     margin: 0;
 }
-
+
+/* ---------------------------------------------------------------------------
+   Leaderboard – nový dizajn s medailami
+   --------------------------------------------------------------------------- */
+
+.leaderboard {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.leaderboard .lb-empty {
+    text-align: center;
+    color: #94a3b8;
+    padding: 24px;
+    font-size: 15px;
+}
+
+.lb-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: #f8fafc;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    transition: transform 0.15s, box-shadow 0.15s;
+    animation: slideUpFade 0.3s ease both;
+}
+
+.lb-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.07);
+}
+
+.lb-top-1 {
+    background: linear-gradient(135deg, #fffbeb, #fef3c7);
+    border-color: #fbbf24;
+}
+
+.lb-top-2 {
+    background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+    border-color: #94a3b8;
+}
+
+.lb-top-3 {
+    background: linear-gradient(135deg, #fff7f3, #ffe8d6);
+    border-color: #fb923c;
+}
+
+.lb-rank {
+    font-size: 22px;
+    width: 32px;
+    text-align: center;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.lb-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.lb-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lb-details {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 500;
+    margin-top: 2px;
+}
+
+.lb-score {
+    font-size: 13px;
+    font-weight: 800;
+    color: #94a3b8;
+    background: #e2e8f0;
+    border-radius: 6px;
+    padding: 3px 8px;
+    flex-shrink: 0;
+    letter-spacing: 0.03em;
+}
+
+.lb-top-1 .lb-score {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+/* ---------------------------------------------------------------------------
+   História hier
+   --------------------------------------------------------------------------- */
+
+.history-panel {
+    background: #ffffff;
+    border: 1px solid #f1f5f9;
+    border-radius: 16px;
+    padding: 32px;
+    box-sizing: border-box;
+    margin-bottom: 20px;
+    width: 100%;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+    animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    align-items: center;
+}
+
+.history-panel h2 {
+    margin: 0 0 16px;
+    font-size: 26px;
+    color: #1e293b;
+    font-weight: 800;
+    align-self: flex-start;
+}
+
+.history-item {
+    background: #f8fafc;
+}
+
+.history-result {
+    font-size: 18px;
+    font-weight: 800;
+    width: 28px;
+    text-align: center;
+    flex-shrink: 0;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+.history-win {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.history-loss {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.history-badge-win {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.history-badge-loss {
+    background: #fee2e2;
+    color: #dc2626;
+}
